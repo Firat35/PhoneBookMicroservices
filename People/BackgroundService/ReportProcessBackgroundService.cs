@@ -1,16 +1,9 @@
-using FileCreateWorkerService.Services;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 using People.Models;
 using People.Services;
-
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-
 using Shared;
-
 using System;
 using System.Collections.Generic;
 using System.Data;
