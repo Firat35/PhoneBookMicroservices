@@ -1,4 +1,6 @@
-namespace People
+using System.ComponentModel.DataAnnotations;
+
+namespace People.Models
 {
     //public class WeatherForecast
     //{
@@ -12,17 +14,11 @@ namespace People
     //}
     public class Person
     {
+        [Key]
         public Guid Id { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Company { get; set; }
         public List<ContactInfo> ContactInfos { get; set; } = new List<ContactInfo>();
-    }
-
-    public class ContactInfo
-    {
-        public Guid Id { get; set; }
-        public string InfoType { get; set; }
-        public string InfoContent { get; set; }
     }
 }

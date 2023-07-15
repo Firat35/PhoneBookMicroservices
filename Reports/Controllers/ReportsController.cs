@@ -1,23 +1,36 @@
 using Microsoft.AspNetCore.Mvc;
 
+using Reports.Repositories;
+using Reports.Services;
+
+using Shared;
+
 namespace Reports.Controllers
 {
     [ApiController]
     [Route("[controller]")]
     public class ReportsController : ControllerBase
     {
-        private static List<Report> _reports = new List<Report>();
+        //private static List<Report> _reports = new List<Report>();
+        private readonly IReportRepository _reportRepository;
+        private readonly RabbitMQPublisher _rabbitMQPublisher;
+
+        public ReportsController(RabbitMQPublisher rabbitMQPublisher, IReportRepository reportRepository)
+        {
+            _rabbitMQPublisher = rabbitMQPublisher;
+            _reportRepository = reportRepository;
+        }
 
         [HttpGet]
-        public IActionResult GetReports()
+        public async Task<IActionResult> GetReports()
         {
-            return Ok(_reports);
+            return Ok(await _reportRepository.GetAllAsync());
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetReport(Guid id)
+        public async Task<IActionResult> GetReport(Guid id)
         {
-            var report = _reports.Find(r => r.Id == id);
+            var report = await _reportRepository.GetByIdAsync(id.ToString());
             if (report == null)
                 return NotFound();
 
@@ -25,19 +38,20 @@ namespace Reports.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateReport([FromBody] Report report)
+        public async Task<IActionResult> CreateReport()
         {
-            report.Id = Guid.NewGuid();
-            report.RequestedDate = DateTime.UtcNow;
-            report.Status = "Hazýrlanýyor";
+            var report = new Report();
+            //report.Id = Guid.NewGuid().ToString();
+            report.RequestedDate = DateTime.Now;
+            report.Status = nameof(ReportStatus.Creating);
 
             // Raporun oluþturulmasý iþlemini gerçekleþtir (asenkron olarak)
+            _rabbitMQPublisher.Publish(report: new Report() { Id = report.Id });
 
-            report.Status = "Tamamlandý";
 
-            _reports.Add(report);
+            await _reportRepository.AddAsync(report);
 
-            return CreatedAtAction(nameof(GetReport), new { id = report.Id }, report);
+            return CreatedAtAction(nameof(GetReport), new { id = report.Id }, new { id = report.Id });
         }
     }
 }
