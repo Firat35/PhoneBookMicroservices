@@ -7,5 +7,6 @@ namespace Reports.Repositories
         Task<List<Report>> GetAllAsync();
         Task<Report> GetByIdAsync(string id);
         Task<Report> AddAsync(Report report);
+        Task UpdateAsync(Report product);
     }
 }

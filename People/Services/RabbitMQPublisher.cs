@@ -17,22 +17,17 @@ namespace People.Services
             _connectionFactory = connectionFactory;
         }
 
-        //public RabbitMQPublisher(RabbitMQClientService rabbitMQClientService)
-        //{
-        //    _rabbitMQClientService = rabbitMQClientService;
-        //}
-
         public void Publish(Report report)
         {
-            //var factory = new ConnectionFactory();
-            //factory.Uri = new Uri("amqps://uhshoatb:4tRfDsemduk6BCrsZaIvfQgOhLsMtf-t@fish.rmq.cloudamqp.com/uhshoatb");
+            var factory = new ConnectionFactory();
+            factory.Uri = new Uri("amqps://ncocubce:Zlv-eKkXTpI1PAafqYwDDXDyO9yPkz62@shrimp.rmq.cloudamqp.com/ncocubce");
 
-            using var connection = _connectionFactory.CreateConnection();
+            using var connection = factory.CreateConnection();
 
 
             var channel = connection.CreateModel();
 
-            channel.ExchangeDeclare("header-exchange", durable: true, type: ExchangeType.Headers);
+            channel.ExchangeDeclare("report-header-exchange", durable: true, type: ExchangeType.Headers);
 
 
             Dictionary<string, object> headers = new Dictionary<string, object>
@@ -44,15 +39,9 @@ namespace People.Services
             properties.Headers = headers;
             properties.Persistent = true;
 
+            var reportJsonString = JsonSerializer.Serialize(report);
 
-            //var product = new Report { Id = 1, Name = "Kalem", Price = 100, Stock = 10 };
-
-            var productJsonString = JsonSerializer.Serialize(report);
-
-
-            //channel.BasicPublish("header-exchange", string.Empty, properties, Encoding.UTF8.GetBytes(productJsonString));
-
-            //Console.WriteLine("mesaj gönderilmiştir");
+            channel.BasicPublish("report-header-exchange", string.Empty, properties, Encoding.UTF8.GetBytes(reportJsonString));
         }
     }
 }

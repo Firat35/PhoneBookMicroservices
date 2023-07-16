@@ -3,26 +3,30 @@ using RabbitMQ.Client;
 using System.Text;
 using Shared;
 using System.Text.Json;
+using Reports.Repositories;
 
 namespace Reports.Services
 {
     public class RabbitMQSubscriber
     {
         private readonly ConnectionFactory _connectionFactory;
+        private readonly IReportRepository _reportRepository;
 
-        public RabbitMQSubscriber(ConnectionFactory connectionFactory)
+        public RabbitMQSubscriber(ConnectionFactory connectionFactory,
+            IReportRepository reportRepository)
         {
             _connectionFactory = connectionFactory;
+            _reportRepository = reportRepository;
         }
         public void Subscribe()
         {
             //var factory = new ConnectionFactory();
-            //factory.Uri = new Uri("amqps://uhshoatb:4tRfDsemduk6BCrsZaIvfQgOhLsMtf-t@fish.rmq.cloudamqp.com/uhshoatb");
+            //factory.Uri = new Uri("amqps://ncocubce:Zlv-eKkXTpI1PAafqYwDDXDyO9yPkz62@shrimp.rmq.cloudamqp.com/ncocubce");
 
-            using var connection = _connectionFactory.CreateConnection();
+            var connection = _connectionFactory.CreateConnection();
 
             var channel = connection.CreateModel();
-            channel.ExchangeDeclare("header-exchange", durable: true, type: ExchangeType.Headers);
+            channel.ExchangeDeclare("report-header-exchange", durable: true, type: ExchangeType.Headers);
 
             channel.BasicQos(0, 1, false);
             var consumer = new EventingBasicConsumer(channel);
@@ -35,30 +39,27 @@ namespace Reports.Services
                 { "x-match", "any" }
             };
 
-
-            channel.QueueBind(queueName, "header-exchange", String.Empty, headers);
+            channel.QueueBind(queueName, "report-header-exchange", String.Empty, headers);
 
             channel.BasicConsume(queueName, false, consumer);
 
-
-            Console.WriteLine("Logları dinleniyor...");
-
-            consumer.Received += (object sender, BasicDeliverEventArgs e) =>
+            consumer.Received += async (object sender, BasicDeliverEventArgs e) =>
             {
                 var message = Encoding.UTF8.GetString(e.Body.ToArray());
 
-                Report product = JsonSerializer.Deserialize<Report>(message);
+                Report report = JsonSerializer.Deserialize<Report>(message);
 
-                //Thread.Sleep(1500);
+                var existReport =  await _reportRepository.GetByIdAsync(report.Id);
+                if (report == null)
+                    return;
 
-                //Console.WriteLine($"Gelen Mesaj: {product.Id}-{product.Name}-{product.Price}-{product.Stock}");
-
+                existReport.Status= report.Status;
+                existReport.locations = report.locations;
+                await _reportRepository.UpdateAsync(existReport);
 
 
                 channel.BasicAck(e.DeliveryTag, false);
             };
-
-
 
         }
     }

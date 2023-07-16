@@ -30,6 +30,11 @@ namespace Reports.Repositories
 
             return report;
         }
+        public async Task UpdateAsync(Report product)
+        {
+            await _reportCollection.FindOneAndReplaceAsync(x => x.Id == product.Id, product);
+        }
+
 
     }
 }

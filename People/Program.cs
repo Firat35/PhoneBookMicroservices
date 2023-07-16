@@ -1,8 +1,7 @@
+using BackgroundServices;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-
 using People.Models;
-
+using People.Services;
 using RabbitMQ.Client;
 
 namespace People
@@ -17,18 +16,26 @@ namespace People
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+
 
             builder.Services.AddSingleton(sp => new ConnectionFactory() { 
                 Uri = new Uri(builder.Configuration.GetConnectionString("RabbitMQ")),
                 DispatchConsumersAsync = true });
 
-            //services.AddSingleton<RabbitMQClientService>();
-            //services.AddSingleton<RabbitMQPublisher>();
+            builder.Services.AddSingleton<RabbitMQClientService>();
+            builder.Services.AddSingleton<RabbitMQPublisher>();
+
+           
+
+            builder.Services.AddHostedService<ReportProcessBackgroundService>();
+
 
             builder.Services.AddDbContext<AppDbContext>(
-            o => o.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQL")));
+o => o.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQL")));
 
 
             var app = builder.Build();

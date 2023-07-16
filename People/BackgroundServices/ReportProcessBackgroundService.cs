@@ -1,4 +1,6 @@
 
+using Microsoft.EntityFrameworkCore;
+
 using People.Models;
 using People.Services;
 using RabbitMQ.Client;
@@ -15,28 +17,21 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FileCreateWorkerService
+namespace BackgroundServices
 {
     public class ReportProcessBackgroundService : BackgroundService
     {
-        private readonly ILogger<ReportProcessBackgroundService> _logger;
-
         private readonly RabbitMQClientService _rabbitMQClientService;
-
         private readonly IServiceProvider _serviceProvider;
-
         private IModel _channel;
-
-        private static List<Person> _people = new List<Person>();
-
         private readonly RabbitMQPublisher _rabbitMQPublisher;
+
         public ReportProcessBackgroundService(
             ILogger<ReportProcessBackgroundService> logger,
             RabbitMQClientService rabbitMQClientService,
             IServiceProvider serviceProvider,
             RabbitMQPublisher rabbitMQPublisher)
         {
-            _logger = logger;
             _rabbitMQClientService = rabbitMQClientService;
             _serviceProvider = serviceProvider;
             _rabbitMQPublisher = rabbitMQPublisher;
@@ -45,7 +40,7 @@ namespace FileCreateWorkerService
         public override Task StartAsync(CancellationToken cancellationToken)
         {
 
-         _channel=_rabbitMQClientService.Connect();
+            _channel=_rabbitMQClientService.Connect();
             _channel.BasicQos(0, 1, false);
 
             return base.StartAsync(cancellationToken);
@@ -71,14 +66,22 @@ namespace FileCreateWorkerService
             var report = JsonSerializer.Deserialize<Report>(Encoding.UTF8.GetString(@event.Body.ToArray()));
 
             var locations = new List<Location>();
+            var people = new List<Person>();
 
-            _people.ForEach(x =>
-            {   
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                people = await context.People.Include(x => x.ContactInfos).ToListAsync();
+            }
+
+            people.ForEach(x =>
+            {
                 x.ContactInfos.ForEach(y =>
                 {
-                    if(y.InfoType == "location")
+                    if (y.InfoType == "location")
                     {
-                        if(!locations.Any(z => z.name == y.InfoContent))
+                        if (!locations.Any(z => z.name == y.InfoContent))
                         {
                             locations.Add(new Location() { name = y.InfoContent });
                         }
@@ -87,17 +90,21 @@ namespace FileCreateWorkerService
                 });
             });
 
-            locations.ForEach(x => {
-                x.PersonCount =  _people.Count(y => y.ContactInfos.Any(z => z.InfoType == "location" && z.InfoContent == x.name));
+            locations.ForEach(x =>
+            {
+                x.PersonCount = people.Count(y => y.ContactInfos.Any(z => z.InfoType == "location" && z.InfoContent == x.name));
                 var phoneCount = 0;
-                _people.ForEach(y => {
+                people.ForEach(y =>
+                {
                     if (y.ContactInfos.Any(z => z.InfoType == "location" && z.InfoContent == x.name))
                         phoneCount += y.ContactInfos.Count(z => z.InfoType == "phoneNumber");
-                 });
+                });
                 x.PhoneNumberCount = phoneCount;
             });
 
             report.locations = locations;
+
+            report.Status = nameof(ReportStatus.Completed);
 
             _rabbitMQPublisher.Publish(report);
 

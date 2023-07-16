@@ -20,22 +20,24 @@ namespace Reports
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.Services.AddSingleton(sp => new ConnectionFactory()
-            {
-                Uri = new Uri(builder.Configuration.GetConnectionString("RabbitMQ")),
-                DispatchConsumersAsync = true
-            });
-            builder.Services.AddScoped<IReportRepository, ReportRepository>();
-            builder.Services.AddSingleton<RabbitMQPublisher>();
-            builder.Services.AddSingleton<RabbitMQClientService>();
+
             builder.Services.Configure<MongoDBSettings>(
-                builder.Configuration.GetSection("MongoDBSettings")
-            );
+               builder.Configuration.GetSection("MongoDBSettings")
+           );
             builder.Services.AddSingleton(options => {
                 var settings = builder.Configuration.GetSection("MongoDBSettings").Get<MongoDBSettings>();
                 var client = new MongoClient(settings.ConnectionString);
                 return client.GetDatabase(settings.DatabaseName);
             });
+
+            builder.Services.AddSingleton(sp => new ConnectionFactory()
+            {
+                Uri = new Uri(builder.Configuration.GetConnectionString("RabbitMQ"))
+            });
+            builder.Services.AddSingleton<IReportRepository, ReportRepository>();
+            builder.Services.AddSingleton<RabbitMQPublisher>();
+            builder.Services.AddSingleton<RabbitMQClientService>();
+            builder.Services.AddSingleton<RabbitMQSubscriber>();
 
             var app = builder.Build();
 
