@@ -9,6 +9,11 @@ namespace Reports.Services
     {
         private readonly RabbitMQClientService _rabbitMQClientService;
 
+        public RabbitMQPublisher()
+        {
+
+        }
+
         public RabbitMQPublisher(RabbitMQClientService rabbitMQClientService)
         {
             _rabbitMQClientService = rabbitMQClientService;

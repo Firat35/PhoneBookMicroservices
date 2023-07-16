@@ -12,6 +12,10 @@ namespace Reports.Services
         private readonly ConnectionFactory _connectionFactory;
         private readonly IReportRepository _reportRepository;
 
+        public RabbitMQSubscriber()
+        {
+
+        }
         public RabbitMQSubscriber(ConnectionFactory connectionFactory,
             IReportRepository reportRepository)
         {

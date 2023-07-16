@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\People\People.csproj" />
+    <ProjectReference Include="..\Reports\Reports.csproj" />
   </ItemGroup>
 
 </Project>

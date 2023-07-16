@@ -9,6 +9,10 @@ namespace Reports.Repositories
     public class ReportRepository : IReportRepository
     {
         private readonly IMongoCollection<Report> _reportCollection;
+        public ReportRepository()
+        {
+
+        }
         public ReportRepository(IMongoDatabase mongoDatabase)
         {
             _reportCollection = mongoDatabase.GetCollection<Report>("reports");

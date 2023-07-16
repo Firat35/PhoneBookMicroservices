@@ -29,9 +29,9 @@ namespace Reports.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetReport(Guid id)
+        public async Task<IActionResult> GetReport(string id)
         {
-            var report = await _reportRepository.GetByIdAsync(id.ToString());
+            var report = await _reportRepository.GetByIdAsync(id);
             if (report == null)
                 return NotFound();
 
@@ -53,5 +53,6 @@ namespace Reports.Controllers
 
             return CreatedAtAction(nameof(GetReport), new { id = report.Id }, new { id = report.Id });
         }
+
     }
 }
