@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using People.Models;
+using People.Repository;
 
 namespace People.Controllers
 {
@@ -8,29 +9,32 @@ namespace People.Controllers
     [Route("[controller]")]
     public class PeopleController : ControllerBase
     {
-        private static List<Person> _people = new List<Person>();
-        private readonly AppDbContext _context;
+        //private static List<Person> _people = new List<Person>();
+        //private readonly AppDbContext _context;
+        private readonly IRepository<Person> _repoPerson;
+        private readonly IRepository<ContactInfo> _repoContact;
 
-        public PeopleController(AppDbContext context)
+        public PeopleController(
+            IRepository<Person> repoPerson,
+            IRepository<ContactInfo> repoContact)
         {
-            _context = context;
+            _repoPerson = repoPerson;
+            _repoContact = repoContact;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetPeople()
         {
-            return Ok(await _context.People.ToListAsync());
+            return Ok(await _repoPerson.GetAllAsync());
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPerson(Guid id)
         {
-            var person =  await _context.People
-                .Include(x => x.ContactInfos)
-                .FirstOrDefaultAsync( x => x.Id == id);
+            var person = await _repoPerson.GetByIdAsync(id);
             if (person == null)
                 return NotFound();
-
+            person.ContactInfos = await _repoContact.Where(x => x.PersonId== id).ToListAsync();
             return Ok(person);
         }
 
@@ -53,8 +57,8 @@ namespace People.Controllers
                 });
             });
             newPerson.ContactInfos.AddRange(contacts);
-            await _context.AddAsync(newPerson); 
-            _context.SaveChanges();
+
+            await _repoPerson.CreateAsync(newPerson);
 
             return CreatedAtAction(nameof(GetPerson), new { id = newPerson.Id }, new { id = newPerson.Id });
         }
@@ -63,12 +67,11 @@ namespace People.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePerson(Guid id)
         {
-            var person = await _context.People.FindAsync(id);
+            var person = await _repoPerson.GetByIdAsync(id);
             if (person == null)
                 return NotFound();
 
-            _context.Remove(person);
-            await _context.SaveChangesAsync();
+            await _repoPerson.DeleteAsync(person);
 
             return NoContent();
         }
@@ -76,16 +79,15 @@ namespace People.Controllers
         [HttpPost("{id}/contact")]
         public async Task<IActionResult> AddContact(Guid id, [FromBody] ContactInfoDto contact)
         {
-            var person = await _context.People.FindAsync(id);
+            var person = await _repoPerson.GetByIdAsync(id);
             if (person == null)
                 return NotFound();
 
-            await _context.ContactInfos.AddAsync(new ContactInfo {
+            await _repoContact.CreateAsync(new ContactInfo {
                 InfoContent = contact.InfoContent,
                 InfoType = contact.InfoType,
                 PersonId = person.Id
             });
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -93,20 +95,15 @@ namespace People.Controllers
         [HttpDelete("{id}/contact/{contactId}")]
         public async Task<IActionResult> RemoveContact(Guid id, Guid contactId)
         {
-            var person = await _context.People
-                .Include(x => x.ContactInfos)
-                .FirstOrDefaultAsync(x => x.Id == id);
-
+            var person = await _repoPerson.GetByIdAsync(id);
             if (person == null)
-                return NotFound();
+                return NotFound("Person");
 
-            var contact =  person.ContactInfos.FirstOrDefault(x => x.Id == contactId);
+            var contact = await _repoContact.GetByIdAsync(contactId);
             if (contact == null)
-                return NotFound();
+                return NotFound("Contact");
 
-            person.ContactInfos.Remove(contact);
-
-            await _context.SaveChangesAsync();
+            await _repoContact.DeleteAsync(contact);
 
             return NoContent();
         }

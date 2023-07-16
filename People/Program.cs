@@ -1,6 +1,7 @@
 using BackgroundServices;
 using Microsoft.EntityFrameworkCore;
 using People.Models;
+using People.Repository;
 using People.Services;
 using RabbitMQ.Client;
 
@@ -34,8 +35,9 @@ namespace People
             builder.Services.AddHostedService<ReportProcessBackgroundService>();
 
 
-            builder.Services.AddDbContext<AppDbContext>(
-o => o.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQL")));
+            builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQL")));
+
+            builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 
             var app = builder.Build();
