@@ -1,5 +1,6 @@
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 using People.Models;
 using People.Services;
@@ -60,8 +61,16 @@ namespace BackgroundServices
 
         private async Task Consumer_Received(object sender, BasicDeliverEventArgs @event)
         {
-            await Task.Delay(5000);
 
+            await ReportCreateAsync(@event);
+            _channel.BasicAck(@event.DeliveryTag, false);
+
+        }
+
+        private async Task ReportCreateAsync(BasicDeliverEventArgs @event)
+        {
+            //simulation
+            await Task.Delay(5000);
 
             var report = JsonSerializer.Deserialize<Report>(Encoding.UTF8.GetString(@event.Body.ToArray()));
 
@@ -97,7 +106,7 @@ namespace BackgroundServices
                 people.ForEach(y =>
                 {
                     if (y.ContactInfos.Any(z => z.InfoType == "location" && z.InfoContent == x.name))
-                        phoneCount += y.ContactInfos.Count(z => z.InfoType == "phoneNumber");
+                        phoneCount += y.ContactInfos.Count(z => z.InfoType == "number");
                 });
                 x.PhoneNumberCount = phoneCount;
             });
@@ -107,8 +116,6 @@ namespace BackgroundServices
             report.Status = nameof(ReportStatus.Completed);
 
             _rabbitMQPublisher.Publish(report);
-
-            _channel.BasicAck(@event.DeliveryTag, false);
 
         }
 

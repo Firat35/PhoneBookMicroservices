@@ -9,8 +9,6 @@ namespace People.Controllers
     [Route("[controller]")]
     public class PeopleController : ControllerBase
     {
-        //private static List<Person> _people = new List<Person>();
-        //private readonly AppDbContext _context;
         private readonly IRepository<Person> _repoPerson;
         private readonly IRepository<ContactInfo> _repoContact;
 
@@ -25,7 +23,15 @@ namespace People.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPeople()
         {
-            return Ok(await _repoPerson.GetAllAsync());
+            var people = await _repoPerson.GetAllAsync();
+            var peopleDtos = new List<PersonDto>();
+            people.ToList().ForEach(x =>
+            {
+                var newPeopleDto = new PersonDto { Id = x.Id, FirstName = x.FirstName, LastName = x.LastName, Company=x.Company };  
+                peopleDtos.Add(newPeopleDto);
+            });
+
+            return Ok(peopleDtos);
         }
 
         [HttpGet("{id}")]
@@ -34,12 +40,13 @@ namespace People.Controllers
             var person = await _repoPerson.GetByIdAsync(id);
             if (person == null)
                 return NotFound();
-            person.ContactInfos = await _repoContact.Where(x => x.PersonId== id).ToListAsync();
+            var contacts  = await _repoContact.GetListAsync(x => x.PersonId== id);
+            person.ContactInfos= contacts.ToList();
             return Ok(person);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreatePerson([FromBody] PersonDto person)
+        public async Task<IActionResult> CreatePerson([FromBody] PersonDetailDto person)
         {
             var newPerson = new Person()
             {

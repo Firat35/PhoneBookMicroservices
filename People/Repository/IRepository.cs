@@ -14,6 +14,6 @@ namespace People.Repository
 
         Task DeleteAsync(TEntity entity);
 
-        IQueryable<TEntity> Where(Expression<Func<TEntity, bool>> expression);
+        Task<IEnumerable<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> expression);
     }
 }

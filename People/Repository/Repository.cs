@@ -48,9 +48,9 @@ namespace People.Repository
             await _context.SaveChangesAsync();
         }
 
-        public IQueryable<TEntity> Where(Expression<Func<TEntity, bool>> expression)
+        public async Task<IEnumerable<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> expression)
         {
-            return _dbSet.Where(expression);
+            return await _dbSet.Where(expression).ToListAsync();
         }
     }
 }
