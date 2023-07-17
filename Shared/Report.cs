@@ -12,7 +12,7 @@ namespace Shared
         public string Id { get; set; }
         public DateTime RequestedDate { get; set; }
         public string Status { get; set; }
-        public List<Location> locations { get; set; }
+        public List<Location> locations { get; set; } = new List<Location>();
     }
     public enum ReportStatus
     {

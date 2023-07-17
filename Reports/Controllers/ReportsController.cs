@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
+using Reports.Models;
 using Reports.Repositories;
 using Reports.Services;
 
@@ -25,7 +26,14 @@ namespace Reports.Controllers
         [HttpGet]
         public async Task<IActionResult> GetReports()
         {
-            return Ok(await _reportRepository.GetAllAsync());
+            var reports = await _reportRepository.GetAllAsync();
+            var reportDtos = new List<ReportDto>();
+            reports.ToList().ForEach(x =>
+            {
+                var newReportDto = new ReportDto { Id = x.Id, Status = x.Status, RequestedDate = x.RequestedDate };
+                reportDtos.Add(newReportDto);
+            });
+            return Ok(reportDtos);
         }
 
         [HttpGet("{id}")]
